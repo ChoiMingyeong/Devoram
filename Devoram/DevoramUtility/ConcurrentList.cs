@@ -36,6 +36,8 @@
 
         public void Add(T obj, int timeout = 0) => WriteExecute(() => _values.Add(obj), timeout);
 
+        public void AddRange(IEnumerable<T> list, int timeout = 0) => WriteExecute(() => _values.AddRange(list), timeout);
+
         public void Remove(T obj, int timeout = 0) => WriteExecute(() => _values.Remove(obj), timeout);
 
         public void Clear(int timeout = 0) => WriteExecute(() => _values.Clear(), timeout);
