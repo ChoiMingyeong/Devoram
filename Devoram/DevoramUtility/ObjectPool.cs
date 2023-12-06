@@ -6,7 +6,6 @@ namespace DevoramUtility
     public interface IRecycle
     {
         public abstract void Reset();
-        public abstract void Init(params object?[]? args);
     }
 
     public class ObjectPool<T> where T : IRecycle, new()
