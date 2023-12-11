@@ -10,20 +10,20 @@ namespace DevoramUtility
 
     public class ObjectPool<T> where T : IRecycle, new()
     {
-        private readonly int DefaultCapacity = 256;
+        private readonly int DefaultSize = 256;
 
         private ConcurrentList<T> _objects = new();
 
         private ConcurrentQueue<T> _waitingObjectQueue = new();
 
-        public ObjectPool(int defaultCapacity = 0)
+        public ObjectPool(int defaultSize = 0)
         {
-            if (defaultCapacity > 0)
+            if (defaultSize > 0)
             {
-                DefaultCapacity = defaultCapacity;
+                DefaultSize = defaultSize;
             }
 
-            for (int i = 0; i < DefaultCapacity; i++)
+            for (int i = 0; i < DefaultSize; i++)
             {
                 CreateObject();
             }
