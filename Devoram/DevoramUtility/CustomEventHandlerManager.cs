@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 
 namespace DevoramUtility
 {
@@ -19,9 +20,14 @@ namespace DevoramUtility
             }
         }
 
+        public bool TryGetValue(T key, [NotNullWhen(true)] out CustomEventHandlerList? value)
+        {
+            return _targetEventHandlerLists.TryGetValue(key, out value);
+        }
+
         public bool TryAdd(T key)
         {
-            if(true == _targetEventHandlerLists.TryGetValue(key, out _))
+            if (true == _targetEventHandlerLists.TryGetValue(key, out _))
             {
                 return false;
             }
