@@ -49,7 +49,7 @@ namespace DevoramUtility
             _eventHandlerList.AddHandler(eventKey, eventHandler);
         }
 
-        public void Subtract(int eventType, EventHandler eventHandler)
+        public void Remove(int eventType, EventHandler eventHandler)
         {
             if (false == _eventKeyMapping.TryGetValue(eventType, out var eventKey))
             {

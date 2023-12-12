@@ -32,14 +32,14 @@ namespace DevoramUtility
             eventHandlerList.Add(eventType, handler);
         }
 
-        public void Subtract(T key, int eventType, [NotNull] EventHandler handler)
+        public void Remove(T key, int eventType, [NotNull] EventHandler handler)
         {
             if (false == _targetEventHandlerLists.TryGetValue(key, out var eventHandlerList))
             {
                 return;
             }
 
-            eventHandlerList.Subtract(eventType, handler);
+            eventHandlerList.Remove(eventType, handler);
         }
 
         public bool TryRemove(T key)
