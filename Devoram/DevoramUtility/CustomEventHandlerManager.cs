@@ -4,37 +4,40 @@ namespace DevoramUtility
 {
     public class CustomEventHandlerManager<T> where T : notnull
     {
-        private ConcurrentDictionary<T, CustomEventHandlerList> _targetEventHandlerMapping = new();
+        private ConcurrentDictionary<T, CustomEventHandlerList> _targetEventHandlerLists = new();
 
-        public void AddEventDelegate(T target, byte index, EventHandler? eventHandler)
+        public CustomEventHandlerList? this[T key]
         {
-            if (false == _targetEventHandlerMapping.TryGetValue(target, out var handlers))
+            get
             {
-                handlers = new CustomEventHandlerList();
-                _targetEventHandlerMapping.TryAdd(target, handlers);
-            }
+                if (false == _targetEventHandlerLists.TryGetValue(key, out var handlerList))
+                {
+                    return null;
+                }
 
-            handlers.AddHandler(index, eventHandler);
+                return handlerList;
+            }
         }
 
-        public void RemoveEventDelegate(T target, byte index, EventHandler? eventHandler)
+        public bool TryAdd(T key)
         {
-            if (false == _targetEventHandlerMapping.TryGetValue(target, out var handlers))
+            if(true == _targetEventHandlerLists.TryGetValue(key, out _))
             {
-                return;
+                return false;
             }
 
-            handlers.RemoveHandler(index, eventHandler);
+            return _targetEventHandlerLists.TryAdd(key, new());
         }
 
-        public void NotifyRaisedEvent(T target, byte index, EventArgs e)
+        public bool TryRemove(T key)
         {
-            if (false == _targetEventHandlerMapping.TryGetValue(target, out var handlers))
+            if (false == _targetEventHandlerLists.TryRemove(key, out var handlerList))
             {
-                return;
+                return false;
             }
 
-            handlers.NotifyRaisedEvent(index, e);
+            handlerList.Clear();
+            return true;
         }
     }
 }

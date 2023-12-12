@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace DevoramUtility
 {
@@ -7,57 +8,107 @@ namespace DevoramUtility
     {
         private static ObjectPool<EventKey> _eventKeyObjectPool = new ObjectPool<EventKey>();
 
-        private ConcurrentDictionary<byte, EventKey> _eventKeyMapping = new();
+        private ConcurrentDictionary<int, EventKey> _eventKeyMapping = new();
         private EventHandlerList _eventHandlerList = new EventHandlerList();
 
-        private EventHandler? this[byte index]
+        public EventHandler? this[int key]
         {
             get
             {
-                if (false == _eventKeyMapping.TryGetValue(index, out var key))
+                if (false == _eventKeyMapping.TryGetValue(key, out var eventKey))
                 {
                     return null;
                 }
 
-                if (_eventHandlerList[key] is not EventHandler eventHandler)
+                if (_eventHandlerList[eventKey] is not EventHandler eventHandler)
                 {
                     return null;
                 }
 
                 return eventHandler;
             }
+
+            set
+            {
+                var eventHandler = this[key];
+
+                if (value is null)
+                {
+                    if (eventHandler is not null)
+                    {
+                        TryRemove(key);
+                    }
+
+                    return;
+                }
+
+                if (eventHandler is null)
+                {
+                    TryAdd(key, value);
+                    return;
+                }
+
+                if (true == _eventKeyMapping.TryGetValue(key, out var eventkey))
+                {
+                    _eventHandlerList.RemoveHandler(eventkey, eventHandler);
+                    _eventHandlerList.AddHandler(eventkey, value);
+                }
+            }
         }
 
-        public void AddHandler(byte index, EventHandler? eventHandler)
+        public bool TryGetValue(int key, [NotNullWhen(true)] out EventHandler? value)
         {
-            if (false == _eventKeyMapping.TryGetValue(index, out var key))
+            if (this[key] is not EventHandler eventHandler)
             {
-                key = _eventKeyObjectPool.GetObject();
-                _eventKeyMapping.TryAdd(index, key);
+                value = null;
+                return false;
             }
 
-            _eventHandlerList.AddHandler(key, eventHandler);
+            value  = eventHandler;
+            return true;
+
         }
 
-        public void RemoveHandler(byte index, EventHandler? eventHandler)
+        public bool TryAdd(int key, EventHandler eventHandler)
         {
-            if (false == _eventKeyMapping.TryGetValue(index, out var key))
+            if (true == _eventKeyMapping.TryGetValue(key, out _))
             {
-                return;
+                return false;
             }
 
-            _eventKeyObjectPool.ReturnObject(key);
-            _eventHandlerList.RemoveHandler(key, eventHandler);
+            var eventKey = _eventKeyObjectPool.GetObject();
+            _eventKeyMapping.TryAdd(key, eventKey);
+            _eventHandlerList.AddHandler(eventKey, eventHandler);
+            return true;
         }
 
-        public void NotifyRaisedEvent(byte index, EventArgs e)
+        public bool TryRemove(int key)
         {
-            if (false == _eventKeyMapping.TryGetValue(index, out var key))
+            if (false == _eventKeyMapping.TryRemove(key, out var eventKey))
             {
-                return;
+                return false;
             }
 
-            this[index]?.Invoke(this, e);
+            _eventHandlerList.RemoveHandler(eventKey, _eventHandlerList[eventKey]);
+            _eventKeyObjectPool.ReturnObject(eventKey);
+            return true;
+        }
+
+        public void Clear()
+        {
+            _eventHandlerList.Dispose();
+
+            foreach (var eventKey in _eventKeyMapping.Values)
+            {
+                _eventKeyObjectPool.ReturnObject(eventKey);
+            }
+
+            _eventKeyMapping.Clear();
+        }
+
+        public void NotifyRaisedEvent(int key, EventArgs e)
+        {
+            this[key]?.Invoke(this, e);
         }
     }
 }
