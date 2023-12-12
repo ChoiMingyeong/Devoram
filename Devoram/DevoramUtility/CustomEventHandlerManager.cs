@@ -53,9 +53,9 @@ namespace DevoramUtility
             return true;
         }
 
-        public void NotifyEvent(T key, [NotNull] CustomEventArgs args)
+        public void NotifyEvent(T key, int eventType, [NotNull] CustomEventArgs args)
         {
-            this[key]?.NotifyEvent(args.EventTypeKey, args);
+            this[key]?.NotifyEvent(eventType, args);
         }
     }
 }

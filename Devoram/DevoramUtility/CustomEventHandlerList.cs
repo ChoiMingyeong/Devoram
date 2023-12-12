@@ -59,9 +59,9 @@ namespace DevoramUtility
             _eventHandlerList.RemoveHandler(eventKey, eventHandler);
         }
 
-        public void NotifyEvent(int eventType, CustomEventArgs e)
+        public void NotifyEvent(int eventType, CustomEventArgs args)
         {
-            this[eventType]?.Invoke(this, e);
+            this[eventType]?.Invoke(eventType, args);
         }
 
         public void Reset()
