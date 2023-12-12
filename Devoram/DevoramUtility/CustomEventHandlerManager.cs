@@ -5,9 +5,10 @@ namespace DevoramUtility
 {
     public class CustomEventHandlerManager<T> where T : notnull
     {
+        static private ObjectPool<CustomEventHandlerList> _handlerPool = new();
         private ConcurrentDictionary<T, CustomEventHandlerList> _targetEventHandlerLists = new();
 
-        public CustomEventHandlerList? this[T key]
+        private CustomEventHandlerList? this[T key]
         {
             get
             {
@@ -20,19 +21,25 @@ namespace DevoramUtility
             }
         }
 
-        public bool TryGetValue(T key, [NotNullWhen(true)] out CustomEventHandlerList? value)
+        public void Add(T key, int eventType, [NotNull] EventHandler handler)
         {
-            return _targetEventHandlerLists.TryGetValue(key, out value);
-        }
-
-        public bool TryAdd(T key)
-        {
-            if (true == _targetEventHandlerLists.TryGetValue(key, out _))
+            if(false == _targetEventHandlerLists.TryGetValue(key, out var eventHandlerList))
             {
-                return false;
+                eventHandlerList = new();
+                _targetEventHandlerLists.TryAdd(key, eventHandlerList);
             }
 
-            return _targetEventHandlerLists.TryAdd(key, new());
+            eventHandlerList.Add(eventType, handler);
+        }
+
+        public void Subtract(T key, int eventType, [NotNull] EventHandler handler)
+        {
+            if (false == _targetEventHandlerLists.TryGetValue(key, out var eventHandlerList))
+            {
+                return;
+            }
+
+            eventHandlerList.Subtract(eventType, handler);
         }
 
         public bool TryRemove(T key)
@@ -42,8 +49,13 @@ namespace DevoramUtility
                 return false;
             }
 
-            handlerList.Clear();
+            _handlerPool.ReturnObject(handlerList);
             return true;
+        }
+
+        public void NotifyEvent(T key, [NotNull] CustomEventArgs args)
+        {
+            this[key]?.NotifyEvent(args.EventTypeKey, args);
         }
     }
 }

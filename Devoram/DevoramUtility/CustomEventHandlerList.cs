@@ -4,61 +4,30 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace DevoramUtility
 {
-    public class CustomEventHandlerList
+    public class CustomEventHandlerList : IRecycle
     {
         private static ObjectPool<EventKey> _eventKeyObjectPool = new ObjectPool<EventKey>();
 
         private ConcurrentDictionary<int, EventKey> _eventKeyMapping = new();
         private EventHandlerList _eventHandlerList = new EventHandlerList();
 
-        public EventHandler? this[int key]
+        public EventHandler? this[int eventType]
         {
             get
             {
-                if (false == _eventKeyMapping.TryGetValue(key, out var eventKey))
-                {
-                    return null;
-                }
-
-                if (_eventHandlerList[eventKey] is not EventHandler eventHandler)
+                if (false == _eventKeyMapping.TryGetValue(eventType, out var eventKey) ||
+                    _eventHandlerList[eventKey] is not EventHandler eventHandler)
                 {
                     return null;
                 }
 
                 return eventHandler;
             }
-
-            set
-            {
-                var eventHandler = this[key];
-
-                if (value is null)
-                {
-                    if (eventHandler is not null)
-                    {
-                        TryRemove(key);
-                    }
-
-                    return;
-                }
-
-                if (eventHandler is null)
-                {
-                    TryAdd(key, value);
-                    return;
-                }
-
-                if (true == _eventKeyMapping.TryGetValue(key, out var eventkey))
-                {
-                    _eventHandlerList.RemoveHandler(eventkey, eventHandler);
-                    _eventHandlerList.AddHandler(eventkey, value);
-                }
-            }
         }
 
-        public bool TryGetValue(int key, [NotNullWhen(true)] out EventHandler? value)
+        public bool TryGetValue(int eventType, [NotNullWhen(true)] out EventHandler? value)
         {
-            if (this[key] is not EventHandler eventHandler)
+            if (this[eventType] is not EventHandler eventHandler)
             {
                 value = null;
                 return false;
@@ -69,32 +38,33 @@ namespace DevoramUtility
 
         }
 
-        public bool TryAdd(int key, EventHandler eventHandler)
+        public void Add(int eventType, EventHandler eventHandler)
         {
-            if (true == _eventKeyMapping.TryGetValue(key, out _))
+            if (false == _eventKeyMapping.TryGetValue(eventType, out var eventKey))
             {
-                return false;
+                eventKey = _eventKeyObjectPool.GetObject();
+                _eventKeyMapping.TryAdd(eventType, eventKey);
             }
 
-            var eventKey = _eventKeyObjectPool.GetObject();
-            _eventKeyMapping.TryAdd(key, eventKey);
             _eventHandlerList.AddHandler(eventKey, eventHandler);
-            return true;
         }
 
-        public bool TryRemove(int key)
+        public void Subtract(int eventType, EventHandler eventHandler)
         {
-            if (false == _eventKeyMapping.TryRemove(key, out var eventKey))
+            if (false == _eventKeyMapping.TryGetValue(eventType, out var eventKey))
             {
-                return false;
+                return;
             }
 
-            _eventHandlerList.RemoveHandler(eventKey, _eventHandlerList[eventKey]);
-            _eventKeyObjectPool.ReturnObject(eventKey);
-            return true;
+            _eventHandlerList.RemoveHandler(eventKey, eventHandler);
         }
 
-        public void Clear()
+        public void NotifyEvent(int eventType, CustomEventArgs e)
+        {
+            this[eventType]?.Invoke(this, e);
+        }
+
+        public void Reset()
         {
             _eventHandlerList.Dispose();
 
@@ -104,11 +74,6 @@ namespace DevoramUtility
             }
 
             _eventKeyMapping.Clear();
-        }
-
-        public void NotifyRaisedEvent(int key, EventArgs e)
-        {
-            this[key]?.Invoke(this, e);
         }
     }
 }
